@@ -1,5 +1,5 @@
-PRJNAME := astro_hunter
-OBJS := data.rel actor.rel shot.rel shots.rel map.rel score.rel astro_hunter.rel
+PRJNAME := winter_shooter
+OBJS := data.rel actor.rel shot.rel shots.rel map.rel score.rel winter_shooter.rel
 
 all: $(PRJNAME).sms
 
