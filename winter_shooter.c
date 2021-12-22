@@ -62,7 +62,7 @@ struct enemy_spawner {
 
 const enemy_type enemy_types[ENEMY_TYPE_COUNT] = {
 	{66, 2},
-	{130, 6},
+	{130, 4},
 	{154, 6}
 };
 
