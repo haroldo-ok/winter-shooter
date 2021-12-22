@@ -63,7 +63,7 @@ struct enemy_spawner {
 const enemy_type enemy_types[ENEMY_TYPE_COUNT] = {
 	{66, 2},
 	{130, 4},
-	{154, 6}
+	{154, 3}
 };
 
 path_step *enemy_paths[ENEMY_PATH_COUNT] = {
