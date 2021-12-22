@@ -21,13 +21,15 @@
 #define ENEMY_PATH_COUNT (4)
 	
 #define POWERUP_BASE_TILE (100)
-#define POWERUP_LIGHTINING_TILE (POWERUP_BASE_TILE)
-#define POWERUP_FIRE_TILE (POWERUP_BASE_TILE + 8)
-#define POWERUP_WIND_TILE (POWERUP_BASE_TILE + 16)
-#define POWERUP_NONE_TILE (POWERUP_BASE_TILE + 24)
-#define POWERUP_LIGHTINING (1)
-#define POWERUP_FIRE (2)
-#define POWERUP_WIND (3)
+#define POWERUP_HAT_TILE (POWERUP_BASE_TILE)
+#define POWERUP_PRESENT_1_TILE (POWERUP_BASE_TILE + 4)
+#define POWERUP_PRESENT_2_TILE (POWERUP_BASE_TILE + 8)
+#define POWERUP_PRESENT_3_TILE (POWERUP_BASE_TILE + 12)
+#define POWERUP_NONE_TILE (POWERUP_BASE_TILE + 16)
+#define POWERUP_HAT (1)
+#define POWERUP_PRESENT_1 (2)
+#define POWERUP_PRESENT_2 (3)
+#define POWERUP_PRESENT_3 (5)
 
 actor player;
 actor enemies[ENEMY_MAX];
@@ -210,15 +212,16 @@ void draw_enemies() {
 }
 
 void init_powerups() {
-	init_actor(&powerup, 0, 0, 2, 1, POWERUP_LIGHTINING_TILE, 2);
+	init_actor(&powerup, 0, 0, 2, 1, POWERUP_HAT_TILE, 1);
 	powerup.active = 0;
 }
 
 char powerup_base_tile(char type) {
 	switch (type) {
-	case POWERUP_LIGHTINING: return POWERUP_LIGHTINING_TILE;
-	case POWERUP_FIRE: return POWERUP_FIRE_TILE;
-	case POWERUP_WIND: return POWERUP_WIND_TILE;
+	case POWERUP_HAT: return POWERUP_HAT_TILE;
+	case POWERUP_PRESENT_1: return POWERUP_PRESENT_1_TILE;
+	case POWERUP_PRESENT_2: return POWERUP_PRESENT_2_TILE;
+	case POWERUP_PRESENT_3: return POWERUP_PRESENT_3_TILE;
 	}
 	
 	return POWERUP_NONE_TILE;
@@ -238,7 +241,7 @@ void handle_powerups() {
 		powerup.x = 8 + rand() % (256 - 24);
 		powerup.y = -16;
 		powerup.active = 1;
-		powerup.state = 1 + rand() % 3;
+		powerup.state = 1 + rand() % 0x03;
 		powerup.base_tile = powerup_base_tile(powerup.state);
 	}	
 }
