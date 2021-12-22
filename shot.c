@@ -184,7 +184,7 @@ const path ball_lightining_paths[] = {
 
 
 const shot_info player_shot_infos[PLAYER_SHOT_TYPE_COUNT] = {
-	{26, 3, 45, 4, 1, lightining_paths}, // 0
+	{26, 3, 45, 12, 1, lightining_paths}, // 0
 	{32, 4, 40, 8, 1, fire_paths}, // 1
 	{40, 2, 45, 12, 3, wind_paths}, // 2
 	{44, 3, 45, 4, 1, lightining_paths}, // 3
