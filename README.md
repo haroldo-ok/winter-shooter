@@ -8,3 +8,4 @@ A Christmas-Themed SHMUP for the Sega Master System; made for the "[Jame Gam Chr
 * Presents: https://opengameart.org/content/lpc-revised-christmas-pack
 * Presents: https://opengameart.org/content/kyrises-free-16x16-rpg-icon-pack
 * Santa hat: https://opengameart.org/content/santa-rework
+* Background tiles: https://www.spriters-resource.com/pc_computer/tyrian/sheet/37117/
