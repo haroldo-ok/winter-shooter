@@ -31,7 +31,6 @@
 
 actor player;
 actor enemies[ENEMY_MAX];
-actor icons[2];
 actor powerup;
 
 typedef struct enemy_type {
@@ -79,54 +78,6 @@ void load_standard_palettes() {
 	SMS_setSpritePaletteColor(0, 0);
 }
 
-void select_combined_powerup() {
-	switch (ply_ctl.powerup1) {
-	case POWERUP_LIGHTINING:
-		switch (ply_ctl.powerup2) {
-		case POWERUP_LIGHTINING: ply_ctl.shot_type = 3; break; // Thunderstrike
-		case POWERUP_FIRE: ply_ctl.shot_type = 6; break; // Firebolt
-		case POWERUP_WIND: ply_ctl.shot_type = 7; break; // Thunderstorm
-		}
-		break;
-	
-	case POWERUP_FIRE:
-		switch (ply_ctl.powerup2) {
-		case POWERUP_LIGHTINING: ply_ctl.shot_type = 6; break; // Firebolt
-		case POWERUP_FIRE: ply_ctl.shot_type = 4; break; // Hellfire
-		case POWERUP_WIND: ply_ctl.shot_type = 8; break; // Firestorm
-		}
-		break;
-
-	case POWERUP_WIND:
-		switch (ply_ctl.powerup2) {
-		case POWERUP_LIGHTINING: ply_ctl.shot_type = 7; break; // Thunderstorm
-		case POWERUP_FIRE: ply_ctl.shot_type = 8; break; // Firestorm
-		case POWERUP_WIND: ply_ctl.shot_type = 5; break; // Tempest
-		}
-		break;
-
-	}
-}
-
-void switch_powerup() {
-	if (ply_ctl.powerup1_active && ply_ctl.powerup2_active) {
-		// Only the first powerup will be active
-		ply_ctl.powerup1_active = 1;
-		ply_ctl.powerup2_active = 0;
-		ply_ctl.shot_type = ply_ctl.powerup1 - 1;
-	} else if (ply_ctl.powerup1_active) {
-		// Only the second powerup will be active
-		ply_ctl.powerup1_active = 0;
-		ply_ctl.powerup2_active = 1;
-		ply_ctl.shot_type = ply_ctl.powerup2 - 1;
-	} else {
-		// Both powerups will be active
-		ply_ctl.powerup1_active = 1;
-		ply_ctl.powerup2_active = 1;
-		select_combined_powerup();
-	}
-}
-
 void handle_player_input() {
 	static unsigned char joy;	
 	joy = SMS_getKeysStatus();
@@ -149,15 +100,6 @@ void handle_player_input() {
 				ply_ctl.shot_delay = player_shot_infos[ply_ctl.shot_type].firing_delay;
 			}
 		}
-	}
-	
-	if (joy & PORT_A_KEY_1) {
-		if (!ply_ctl.pressed_shot_selection && ply_ctl.powerup2) {
-			switch_powerup();
-			ply_ctl.pressed_shot_selection = 1;
-		}
-	} else {
-		ply_ctl.pressed_shot_selection = 0;
 	}
 	
 	if (ply_ctl.shot_delay) ply_ctl.shot_delay--;
@@ -268,9 +210,6 @@ void draw_enemies() {
 }
 
 void init_powerups() {
-	init_actor(icons, 256 - 32 - 8, 8, 2, 1, POWERUP_LIGHTINING_TILE, 1);	
-	init_actor(icons + 1, 256 - 16 - 8, 8, 2, 1, POWERUP_FIRE_TILE, 1);	
-
 	init_actor(&powerup, 0, 0, 2, 1, POWERUP_LIGHTINING_TILE, 2);
 	powerup.active = 0;
 }
@@ -285,18 +224,6 @@ char powerup_base_tile(char type) {
 	return POWERUP_NONE_TILE;
 }
 
-void handle_icons() {
-	static int tile;
-	
-	tile = powerup_base_tile(ply_ctl.powerup1);
-	if (!ply_ctl.powerup1_active) tile += 4;
-	icons[0].base_tile = tile;
-	
-	tile = powerup_base_tile(ply_ctl.powerup2);
-	if (ply_ctl.powerup2 && !ply_ctl.powerup2_active) tile += 4;
-	icons[1].base_tile = tile;
-}
-
 void handle_powerups() {
 	powerup.y++;
 	if (powerup.y > SCREEN_H) powerup.active = 0;
@@ -304,26 +231,7 @@ void handle_powerups() {
 	if (powerup.active) {
 		// Check collision with player
 		if (powerup.x > player.x - 16 && powerup.x < player.x + 24 &&
-			powerup.y > player.y - 16 && powerup.y < player.y + 16) {
-			if (!ply_ctl.powerup2) {
-				// Second is absent
-				ply_ctl.powerup2 = powerup.state;
-			} else  if (!ply_ctl.powerup1_active) {
-				// First is inactive
-				ply_ctl.powerup1 = powerup.state;
-			} else if (!ply_ctl.powerup2_active) {
-				// Second is inactive
-				ply_ctl.powerup2 = powerup.state;
-			} else {
-				// Both are active
-				ply_ctl.powerup1 = ply_ctl.powerup2;
-				ply_ctl.powerup2 = powerup.state;				
-			}
-			
-			ply_ctl.powerup1_active = 1;
-			ply_ctl.powerup2_active = 1;
-			select_combined_powerup();
-			
+			powerup.y > player.y - 16 && powerup.y < player.y + 16) {			
 			powerup.active = 0;			
 		}
 	} else {
@@ -336,8 +244,6 @@ void handle_powerups() {
 }
 
 void draw_powerups() {
-	draw_actor(icons);
-	draw_actor(icons + 1);		
 	draw_actor(&powerup);
 }
 
@@ -373,7 +279,6 @@ void main() {
 	while (1) {	
 		handle_player_input();
 		handle_enemies();
-		handle_icons();
 		handle_powerups();
 		handle_player_shots();
 	
