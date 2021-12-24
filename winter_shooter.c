@@ -70,6 +70,7 @@ struct enemy_spawner {
 } enemy_spawner;
 
 char timer_delay;
+char frames_elapsed;
 
 
 const enemy_type enemy_types[ENEMY_TYPE_COUNT] = {
@@ -125,6 +126,7 @@ void handle_player_input() {
 		if (!ply_ctl.shot_delay) {
 			if (fire_player_shot(&player, ply_ctl.shot_type)) {
 				ply_ctl.shot_delay = player_shot_infos[ply_ctl.shot_type].firing_delay;
+				PSGPlayNoRepeat(player_shot_psg);
 			}
 		}
 	}
@@ -210,6 +212,7 @@ void handle_enemies() {
 			sht = check_collision_against_shots(enm);
 			if (sht) {
 				update_score(enm, sht);
+				PSGSFXPlay(enemy_death_psg, SFX_CHANNELS2AND3);
 				sht->active = 0;
 				enm->active = 0;
 			}
@@ -264,6 +267,7 @@ void handle_powerups() {
 			powerup.y > player.y - 16 && powerup.y < player.y + 16) {
 			update_score(&powerup, 0);
 			if (powerup.state == 1 && ply_ctl.shot_type < PLAYER_SHOT_TYPE_COUNT - 1) ply_ctl.shot_type++;
+			PSGSFXPlay(get_powerup_psg, SFX_CHANNELS2AND3);
 			powerup.active = 0;			
 		}
 	} else {
@@ -288,6 +292,7 @@ void init_score() {
 	init_score_display(&timer, 24, 8, 236);
 	update_score_display(&timer, TIMER_MAX);
 	timer_delay = 60;
+	frames_elapsed = 0;
 	
 	init_score_display(&score, 16, 24, 236);
 }
@@ -296,8 +301,13 @@ void handle_score() {
 	if (timer_delay) {
 		timer_delay--;
 	} else {
-		if (timer.value) increment_score_display(&timer, -1);
+		if (timer.value) {
+			char decrement = frames_elapsed / 60;
+			if (decrement > timer.value) decrement = timer.value;
+			increment_score_display(&timer, -decrement);
+		}
 		timer_delay = 60;
+		frames_elapsed = 0;
 	}
 }
 
@@ -306,6 +316,12 @@ void draw_score() {
 	draw_score_display(&timer);
 
 	draw_score_display(&score);
+}
+
+void interrupt_handler() {
+	PSGFrame();
+	PSGSFXFrame();
+	frames_elapsed++;
 }
 
 void gameplay_loop() {
@@ -320,6 +336,10 @@ void gameplay_loop() {
 	
 	init_map(level1_bin);
 	draw_map_screen();
+
+	SMS_setLineInterruptHandler(&interrupt_handler);
+	SMS_setLineCounter(180);
+	SMS_enableLineInterrupt();
 
 	SMS_displayOn();
 	
