@@ -268,7 +268,7 @@ void main() {
 	init_actor(&player, 116, PLAYER_BOTTOM - 16, 2, 1, 2, 1);
 	player.animation_delay = 20;
 	ply_ctl.shot_delay = 0;
-	ply_ctl.shot_type = 0;
+	ply_ctl.shot_type = 2;
 	ply_ctl.powerup1 = 1;
 	ply_ctl.powerup2 = 0;
 	ply_ctl.powerup1_active = 1;
