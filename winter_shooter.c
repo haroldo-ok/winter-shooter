@@ -7,6 +7,7 @@
 #include "shot.h"
 #include "shots.h"
 #include "map.h"
+#include "score.h"
 #include "data.h"
 
 #define PLAYER_TOP (0)
@@ -34,6 +35,10 @@
 actor player;
 actor enemies[ENEMY_MAX];
 actor powerup;
+actor timer_label;
+
+score_display timer;
+score_display score;
 
 typedef struct enemy_type {
 	char base_tile, frame_count;
@@ -61,6 +66,9 @@ struct enemy_spawner {
 	char all_dead;
 } enemy_spawner;
 
+char timer_delay;
+
+
 const enemy_type enemy_types[ENEMY_TYPE_COUNT] = {
 	{66, 2},
 	{130, 4},
@@ -73,6 +81,8 @@ path_step *enemy_paths[ENEMY_PATH_COUNT] = {
 	(path_step *) path3_path,
 	(path_step *) path4_path
 };
+
+void update_score(actor *enm, actor *sht);
 
 void load_standard_palettes() {
 	SMS_loadBGPalette(tileset_palette_bin);
@@ -184,6 +194,7 @@ void handle_enemies() {
 		if (enm->active) {
 			sht = check_collision_against_shots(enm);
 			if (sht) {
+				update_score(enm, sht);
 				sht->active = 0;
 				enm->active = 0;
 			}
@@ -236,6 +247,7 @@ void handle_powerups() {
 		// Check collision with player
 		if (powerup.x > player.x - 16 && powerup.x < player.x + 24 &&
 			powerup.y > player.y - 16 && powerup.y < player.y + 16) {
+			update_score(&powerup, 0);
 			if (powerup.state == 1 && ply_ctl.shot_type < PLAYER_SHOT_TYPE_COUNT - 1) ply_ctl.shot_type++;
 			powerup.active = 0;			
 		}
@@ -250,6 +262,35 @@ void handle_powerups() {
 
 void draw_powerups() {
 	draw_actor(&powerup);
+}
+
+void update_score(actor *enm, actor *sht) {
+	increment_score_display(&score, enm == &powerup ? 5 : 1);
+}
+
+void init_score() {
+	init_actor(&timer_label, 16, 8, 1, 1, 178, 1);
+	init_score_display(&timer, 24, 8, 236);
+	update_score_display(&timer, 120);
+	timer_delay = 60;
+	
+	init_score_display(&score, 24, 24, 236);
+}
+
+void handle_score() {
+	if (timer_delay) {
+		timer_delay--;
+	} else {
+		if (timer.value) increment_score_display(&timer, -1);
+		timer_delay = 60;
+	}
+}
+
+void draw_score() {
+	draw_actor(&timer_label);
+	draw_score_display(&timer);
+
+	draw_score_display(&score);
 }
 
 void main() {	
@@ -280,12 +321,14 @@ void main() {
 	init_enemies();
 	init_player_shots();
 	init_powerups();
+	init_score();
 	
 	while (1) {	
 		handle_player_input();
 		handle_enemies();
 		handle_powerups();
 		handle_player_shots();
+		handle_score();
 	
 		SMS_initSprites();
 
@@ -293,6 +336,7 @@ void main() {
 		draw_enemies();
 		draw_powerups();
 		draw_player_shots();		
+		draw_score();
 		
 		SMS_finalizeSprites();
 		SMS_waitForVBlank();
