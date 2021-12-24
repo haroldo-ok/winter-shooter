@@ -234,7 +234,8 @@ void handle_powerups() {
 	if (powerup.active) {
 		// Check collision with player
 		if (powerup.x > player.x - 16 && powerup.x < player.x + 24 &&
-			powerup.y > player.y - 16 && powerup.y < player.y + 16) {			
+			powerup.y > player.y - 16 && powerup.y < player.y + 16) {
+			if (powerup.state == 1 && ply_ctl.shot_type < PLAYER_SHOT_TYPE_COUNT - 1) ply_ctl.shot_type++;
 			powerup.active = 0;			
 		}
 	} else {
@@ -268,7 +269,7 @@ void main() {
 	init_actor(&player, 116, PLAYER_BOTTOM - 16, 2, 1, 2, 1);
 	player.animation_delay = 20;
 	ply_ctl.shot_delay = 0;
-	ply_ctl.shot_type = 2;
+	ply_ctl.shot_type = 0;
 	ply_ctl.powerup1 = 1;
 	ply_ctl.powerup2 = 0;
 	ply_ctl.powerup1_active = 1;
