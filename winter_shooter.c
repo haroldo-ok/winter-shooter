@@ -189,6 +189,7 @@ void handle_enemies() {
 			}
 			
 			if (!ply_ctl.death_delay && is_colliding_against_player(enm)) {
+				if (ply_ctl.shot_type) ply_ctl.shot_type--;
 				enm->active = 0;
 				ply_ctl.death_delay = 60;
 			}
