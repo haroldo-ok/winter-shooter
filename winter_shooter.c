@@ -32,10 +32,13 @@
 #define POWERUP_PRESENT_2 (3)
 #define POWERUP_PRESENT_3 (5)
 
+#define TIMER_MAX (10)
+
 actor player;
 actor enemies[ENEMY_MAX];
 actor powerup;
 actor timer_label;
+actor time_over;
 
 score_display timer;
 score_display score;
@@ -83,6 +86,18 @@ path_step *enemy_paths[ENEMY_PATH_COUNT] = {
 };
 
 void update_score(actor *enm, actor *sht);
+
+void wait_button_press() {
+	do {
+		SMS_waitForVBlank();
+	} while (!(SMS_getKeysStatus() & (PORT_A_KEY_1 | PORT_A_KEY_2)));
+}
+
+void wait_button_release() {
+	do {
+		SMS_waitForVBlank();
+	} while (SMS_getKeysStatus() & (PORT_A_KEY_1 | PORT_A_KEY_2));
+}
 
 void load_standard_palettes() {
 	SMS_loadBGPalette(tileset_palette_bin);
@@ -271,7 +286,7 @@ void update_score(actor *enm, actor *sht) {
 void init_score() {
 	init_actor(&timer_label, 16, 8, 1, 1, 178, 1);
 	init_score_display(&timer, 24, 8, 236);
-	update_score_display(&timer, 120);
+	update_score_display(&timer, TIMER_MAX);
 	timer_delay = 60;
 	
 	init_score_display(&score, 16, 24, 236);
@@ -293,7 +308,7 @@ void draw_score() {
 	draw_score_display(&score);
 }
 
-void main() {	
+void gameplay_loop() {
 	SMS_useFirstHalfTilesforSprites(1);
 	SMS_setSpriteMode(SPRITEMODE_TALL);
 	SMS_VDPturnOnFeature(VDPFEATURE_HIDEFIRSTCOL);
@@ -323,7 +338,7 @@ void main() {
 	init_powerups();
 	init_score();
 	
-	while (1) {	
+	while (timer.value) {	
 		handle_player_input();
 		handle_enemies();
 		handle_powerups();
@@ -345,6 +360,45 @@ void main() {
 		// Scroll two lines per frame
 		draw_map();		
 		draw_map();		
+	}
+}
+
+void timeover_sequence() {
+	char timeover_delay = 128;
+	char pressed_button = 0;
+	
+	init_actor(&time_over, 107, 64, 6, 1, 116, 1);
+
+	while (timeover_delay || !pressed_button) {
+		SMS_initSprites();
+
+		if (!(timeover_delay & 0x10)) draw_actor(&time_over);
+		
+		draw_player();
+		draw_enemies();
+		draw_player_shots();
+		draw_score();
+		
+		SMS_finalizeSprites();
+		SMS_waitForVBlank();
+		SMS_copySpritestoSAT();
+		
+		draw_map();
+		
+		if (timeover_delay) {
+			timeover_delay--;
+		} else {
+			pressed_button = SMS_getKeysStatus() & (PORT_A_KEY_1 | PORT_A_KEY_2);
+		}
+	}
+	
+	wait_button_release();
+}
+
+void main() {	
+	while (1) {
+		gameplay_loop();
+		timeover_sequence();
 	}
 }
 
