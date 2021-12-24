@@ -189,6 +189,7 @@ void handle_enemies() {
 			}
 			
 			if (!ply_ctl.death_delay && is_colliding_against_player(enm)) {
+				if (ply_ctl.shot_type) ply_ctl.shot_type--;
 				enm->active = 0;
 				ply_ctl.death_delay = 60;
 			}
@@ -234,7 +235,8 @@ void handle_powerups() {
 	if (powerup.active) {
 		// Check collision with player
 		if (powerup.x > player.x - 16 && powerup.x < player.x + 24 &&
-			powerup.y > player.y - 16 && powerup.y < player.y + 16) {			
+			powerup.y > player.y - 16 && powerup.y < player.y + 16) {
+			if (powerup.state == 1 && ply_ctl.shot_type < PLAYER_SHOT_TYPE_COUNT - 1) ply_ctl.shot_type++;
 			powerup.active = 0;			
 		}
 	} else {
@@ -303,7 +305,7 @@ void main() {
 }
 
 SMS_EMBED_SEGA_ROM_HEADER(9999,0); // code 9999 hopefully free, here this means 'homebrew'
-SMS_EMBED_SDSC_HEADER(0,1, 2021,12,21, "Haroldo-OK\\2021", "Winter Shooter",
+SMS_EMBED_SDSC_HEADER(0,2, 2021,12,24, "Haroldo-OK\\2021", "Winter Shooter",
   "A Christmas-Themed SHMUP.\n"
   "Originally made for the Jame Gam Christmas Edition - https://itch.io/jam/jame-gam-christmas-edition\n"
   "Built using devkitSMS & SMSlib - https://github.com/sverx/devkitSMS");
