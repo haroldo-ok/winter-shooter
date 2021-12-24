@@ -7,6 +7,7 @@
 #include "shot.h"
 #include "shots.h"
 #include "map.h"
+#include "score.h"
 #include "data.h"
 
 #define PLAYER_TOP (0)
@@ -31,9 +32,16 @@
 #define POWERUP_PRESENT_2 (3)
 #define POWERUP_PRESENT_3 (5)
 
+#define TIMER_MAX (60)
+
 actor player;
 actor enemies[ENEMY_MAX];
 actor powerup;
+actor timer_label;
+actor time_over;
+
+score_display timer;
+score_display score;
 
 typedef struct enemy_type {
 	char base_tile, frame_count;
@@ -61,6 +69,10 @@ struct enemy_spawner {
 	char all_dead;
 } enemy_spawner;
 
+char timer_delay;
+char frames_elapsed;
+
+
 const enemy_type enemy_types[ENEMY_TYPE_COUNT] = {
 	{66, 2},
 	{130, 4},
@@ -73,6 +85,20 @@ path_step *enemy_paths[ENEMY_PATH_COUNT] = {
 	(path_step *) path3_path,
 	(path_step *) path4_path
 };
+
+void update_score(actor *enm, actor *sht);
+
+void wait_button_press() {
+	do {
+		SMS_waitForVBlank();
+	} while (!(SMS_getKeysStatus() & (PORT_A_KEY_1 | PORT_A_KEY_2)));
+}
+
+void wait_button_release() {
+	do {
+		SMS_waitForVBlank();
+	} while (SMS_getKeysStatus() & (PORT_A_KEY_1 | PORT_A_KEY_2));
+}
 
 void load_standard_palettes() {
 	SMS_loadBGPalette(tileset_palette_bin);
@@ -100,6 +126,7 @@ void handle_player_input() {
 		if (!ply_ctl.shot_delay) {
 			if (fire_player_shot(&player, ply_ctl.shot_type)) {
 				ply_ctl.shot_delay = player_shot_infos[ply_ctl.shot_type].firing_delay;
+				PSGPlayNoRepeat(player_shot_psg);
 			}
 		}
 	}
@@ -184,6 +211,8 @@ void handle_enemies() {
 		if (enm->active) {
 			sht = check_collision_against_shots(enm);
 			if (sht) {
+				update_score(enm, sht);
+				PSGSFXPlay(enemy_death_psg, SFX_CHANNELS2AND3);
 				sht->active = 0;
 				enm->active = 0;
 			}
@@ -236,7 +265,9 @@ void handle_powerups() {
 		// Check collision with player
 		if (powerup.x > player.x - 16 && powerup.x < player.x + 24 &&
 			powerup.y > player.y - 16 && powerup.y < player.y + 16) {
+			update_score(&powerup, 0);
 			if (powerup.state == 1 && ply_ctl.shot_type < PLAYER_SHOT_TYPE_COUNT - 1) ply_ctl.shot_type++;
+			PSGSFXPlay(get_powerup_psg, SFX_CHANNELS2AND3);
 			powerup.active = 0;			
 		}
 	} else {
@@ -252,7 +283,48 @@ void draw_powerups() {
 	draw_actor(&powerup);
 }
 
-void main() {	
+void update_score(actor *enm, actor *sht) {
+	increment_score_display(&score, enm == &powerup ? 5 : 1);
+}
+
+void init_score() {
+	init_actor(&timer_label, 16, 8, 1, 1, 178, 1);
+	init_score_display(&timer, 24, 8, 236);
+	update_score_display(&timer, TIMER_MAX);
+	timer_delay = 60;
+	frames_elapsed = 0;
+	
+	init_score_display(&score, 16, 24, 236);
+}
+
+void handle_score() {
+	if (timer_delay) {
+		timer_delay--;
+	} else {
+		if (timer.value) {
+			char decrement = frames_elapsed / 60;
+			if (decrement > timer.value) decrement = timer.value;
+			increment_score_display(&timer, -decrement);
+		}
+		timer_delay = 60;
+		frames_elapsed = 0;
+	}
+}
+
+void draw_score() {
+	draw_actor(&timer_label);
+	draw_score_display(&timer);
+
+	draw_score_display(&score);
+}
+
+void interrupt_handler() {
+	PSGFrame();
+	PSGSFXFrame();
+	frames_elapsed++;
+}
+
+void gameplay_loop() {
 	SMS_useFirstHalfTilesforSprites(1);
 	SMS_setSpriteMode(SPRITEMODE_TALL);
 	SMS_VDPturnOnFeature(VDPFEATURE_HIDEFIRSTCOL);
@@ -264,6 +336,10 @@ void main() {
 	
 	init_map(level1_bin);
 	draw_map_screen();
+
+	SMS_setLineInterruptHandler(&interrupt_handler);
+	SMS_setLineCounter(180);
+	SMS_enableLineInterrupt();
 
 	SMS_displayOn();
 	
@@ -280,12 +356,14 @@ void main() {
 	init_enemies();
 	init_player_shots();
 	init_powerups();
+	init_score();
 	
-	while (1) {	
+	while (timer.value) {	
 		handle_player_input();
 		handle_enemies();
 		handle_powerups();
 		handle_player_shots();
+		handle_score();
 	
 		SMS_initSprites();
 
@@ -293,6 +371,7 @@ void main() {
 		draw_enemies();
 		draw_powerups();
 		draw_player_shots();		
+		draw_score();
 		
 		SMS_finalizeSprites();
 		SMS_waitForVBlank();
@@ -304,8 +383,47 @@ void main() {
 	}
 }
 
+void timeover_sequence() {
+	char timeover_delay = 128;
+	char pressed_button = 0;
+	
+	init_actor(&time_over, 107, 64, 6, 1, 116, 1);
+
+	while (timeover_delay || !pressed_button) {
+		SMS_initSprites();
+
+		if (!(timeover_delay & 0x10)) draw_actor(&time_over);
+		
+		draw_player();
+		draw_enemies();
+		draw_player_shots();
+		draw_score();
+		
+		SMS_finalizeSprites();
+		SMS_waitForVBlank();
+		SMS_copySpritestoSAT();
+		
+		draw_map();
+		
+		if (timeover_delay) {
+			timeover_delay--;
+		} else {
+			pressed_button = SMS_getKeysStatus() & (PORT_A_KEY_1 | PORT_A_KEY_2);
+		}
+	}
+	
+	wait_button_release();
+}
+
+void main() {	
+	while (1) {
+		gameplay_loop();
+		timeover_sequence();
+	}
+}
+
 SMS_EMBED_SEGA_ROM_HEADER(9999,0); // code 9999 hopefully free, here this means 'homebrew'
-SMS_EMBED_SDSC_HEADER(0,2, 2021,12,24, "Haroldo-OK\\2021", "Winter Shooter",
+SMS_EMBED_SDSC_HEADER(0,3, 2021,12,24, "Haroldo-OK\\2021", "Winter Shooter",
   "A Christmas-Themed SHMUP.\n"
   "Originally made for the Jame Gam Christmas Edition - https://itch.io/jam/jame-gam-christmas-edition\n"
   "Built using devkitSMS & SMSlib - https://github.com/sverx/devkitSMS");
