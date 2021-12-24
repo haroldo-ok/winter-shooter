@@ -32,7 +32,7 @@
 #define POWERUP_PRESENT_2 (3)
 #define POWERUP_PRESENT_3 (5)
 
-#define TIMER_MAX (10)
+#define TIMER_MAX (60)
 
 actor player;
 actor enemies[ENEMY_MAX];
