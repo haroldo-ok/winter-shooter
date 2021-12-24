@@ -274,7 +274,7 @@ void init_score() {
 	update_score_display(&timer, 120);
 	timer_delay = 60;
 	
-	init_score_display(&score, 24, 24, 236);
+	init_score_display(&score, 16, 24, 236);
 }
 
 void handle_score() {
